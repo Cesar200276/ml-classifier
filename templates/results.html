@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados - ML Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Resultados del modelo</h1>
+            <a href="{{ url_for('index') }}" class="back-link">&larr; Volver al inicio</a>
+        </header>
+
+        <div class="grid-2col">
+            <section class="card">
+                <h2>Métricas principales</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.accuracy }}</span>
+                        <span class="metric-label">Accuracy</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.precision }}</span>
+                        <span class="metric-label">Precision</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.recall }}</span>
+                        <span class="metric-label">Recall</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.f1_score }}</span>
+                        <span class="metric-label">F1-Score</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Matriz de confusión</h2>
+                {% if model_info.confusion_matrix %}
+                    {% set cm = model_info.confusion_matrix %}
+                    <table class="confusion-matrix">
+                        <tr>
+                            <td></td>
+                            <th>Predicho<br>Negativo</th>
+                            <th>Predicho<br>Positivo</th>
+                        </tr>
+                        <tr>
+                            <th>Real<br>Negativo</th>
+                            <td class="cm-tn">{{ cm[0][0] }}</td>
+                            <td class="cm-fp">{{ cm[0][1] }}</td>
+                        </tr>
+                        <tr>
+                            <th>Real<br>Positivo</th>
+                            <td class="cm-fn">{{ cm[1][0] }}</td>
+                            <td class="cm-tp">{{ cm[1][1] }}</td>
+                        </tr>
+                    </table>
+                    <ul class="cm-legend">
+                        <li><span class="dot tn"></span> TN: Verdaderos Negativos</li>
+                        <li><span class="dot fp"></span> FP: Falsos Positivos</li>
+                        <li><span class="dot fn"></span> FN: Falsos Negativos</li>
+                        <li><span class="dot tp"></span> TP: Verdaderos Positivos</li>
+                    </ul>
+                {% endif %}
+            </section>
+        </div>
+
+        <section class="card">
+            <h2>Informe por clase</h2>
+            {% if model_info.class_report %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Clase</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Soporte</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cls, metrics in model_info.class_report.items() %}
+                                {% if cls not in ['accuracy', 'macro avg', 'weighted avg'] %}
+                                    <tr>
+                                        <td><strong>{{ cls }}</strong></td>
+                                        <td>{{ "%.4f"|format(metrics.precision) }}</td>
+                                        <td>{{ "%.4f"|format(metrics.recall) }}</td>
+                                        <td>{{ "%.4f"|format(metrics['f1-score']) }}</td>
+                                        <td>{{ metrics.support }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>Detalles del dataset</h2>
+            <ul class="info-list">
+                <li><strong>Muestras totales:</strong> {{ model_info.n_samples }}</li>
+                <li><strong>Features:</strong> {{ model_info.n_features }}</li>
+                <li><strong>Columna objetivo:</strong> {{ model_info.target_column }}</li>
+                <li><strong>Clases:</strong> {{ model_info.classes | join(', ') }}</li>
+                <li><strong>Features usados:</strong> {{ model_info.feature_names | join(', ') }}</li>
+            </ul>
+        </section>
+
+        <div class="actions">
+            <a href="{{ url_for('index') }}" class="btn btn-ghost">&larr; Volver al inicio</a>
+            <a href="{{ url_for('predict_page') }}" class="btn btn-success">Hacer predicción</a>
+        </div>
+    </div>
+</body>
+</html>

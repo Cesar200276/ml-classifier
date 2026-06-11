@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predecir - ML Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Hacer una predicción</h1>
+            <a href="{{ url_for('index') }}" class="back-link">&larr; Volver al inicio</a>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid-2col">
+            <section class="card">
+                <h2>Ingresa los datos</h2>
+                <form action="{{ url_for('predict') }}" method="post">
+                    {% for feat in model_info.feature_names %}
+                        <div class="form-group">
+                            <label for="{{ feat }}">{{ feat }}</label>
+                            <input type="text" id="{{ feat }}" name="{{ feat }}" placeholder="Valor numérico" required>
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-danger" style="width:100%; margin-top:8px;">
+                        Predecir
+                    </button>
+                </form>
+            </section>
+
+            {% if prediction is defined %}
+                <section class="card">
+                    <h2>Resultado</h2>
+                    <div class="prediction-result">
+                        <div class="prediction-value {% if prediction.prediction == 1 %}positive{% else %}negative{% endif %}">
+                            Clase predecida: <strong>{{ prediction.prediction }}</strong>
+                        </div>
+                        <div class="probabilities">
+                            <h3>Probabilidades</h3>
+                            {% for i in range(prediction.classes | length) %}
+                                <div class="prob-bar">
+                                    <span class="prob-label">Clase {{ prediction.classes[i] }}</span>
+                                    <div class="bar-container">
+                                        <div class="bar" style="width: {{ (prediction.probabilities[i] * 100) | round }}%;">
+                                            {{ (prediction.probabilities[i] * 100) | round(1) }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <h3 style="text-align:left; color:#aaa; font-size:0.9em; font-weight:500; margin-top:16px;">Datos ingresados</h3>
+                        <ul class="input-data">
+                            {% for key, val in input_data.items() %}
+                                <li><strong>{{ key }}:</strong> {{ val }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </section>
+            {% else %}
+                <section class="card">
+                    <div class="empty-state">
+                        <span class="icon">🔮</span>
+                        <p>Completa el formulario para obtener una predicción</p>
+                    </div>
+                </section>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

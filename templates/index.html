@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Classifier - Regresión Logística</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ML Classifier</h1>
+            <p>Entrena un modelo de regresión logística con tus propios datos</p>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="grid-2col">
+            <section class="card">
+                <h2><span class="step">1</span> Cargar datos</h2>
+                <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                    <input type="file" name="file" accept=".csv" required>
+                    <button type="submit" class="btn btn-primary">Subir</button>
+                </form>
+                <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+                    <span style="color: #666; font-size: 0.85em;">o</span>
+                    <form action="{{ url_for('generate_sample') }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-success">Generar datos de ejemplo</button>
+                    </form>
+                </div>
+                {% if files %}
+                    <h3>Archivos disponibles</h3>
+                    <ul class="file-list">
+                        {% for f in files %}
+                            <li>
+                                <a href="{{ url_for('index', file=f.path) }}" class="{% if selected == f.path %}active{% endif %}">
+                                    {{ f.name }}
+                                </a>
+                                <span class="badge">{{ f.type }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+
+            <section class="card">
+                <h2><span class="step">2</span> Entrenar modelo</h2>
+                {% if preview %}
+                    <form action="{{ url_for('train') }}" method="post">
+                        <input type="hidden" name="csv_path" value="{{ selected or files[0].path }}">
+                        <div class="form-group">
+                            <label>Columna objetivo (target)</label>
+                            <select name="target_col" class="target-select">
+                                <option value="">— Última columna —</option>
+                                {% for col in preview.columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-danger" style="width:100%;">
+                            Entrenar modelo
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="empty-state">
+                        <span class="icon">📂</span>
+                        <p>Carga un archivo CSV o genera datos de ejemplo para empezar</p>
+                    </div>
+                {% endif %}
+            </section>
+        </div>
+
+        {% if preview %}
+            <section class="card">
+                <h2>Vista previa: {{ selected.split('/')[-1].split('\\')[-1] if selected else files[0].name }}</h2>
+                <p class="dim">{{ preview.shape[0] }} filas &times; {{ preview.shape[1] }} columnas</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                {% for col in preview.columns %}
+                                    <th>{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview.rows %}
+                                <tr>
+                                    {% for col in preview.columns %}
+                                        <td>{{ row[col] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% endif %}
+
+        {% if model_info %}
+            <div class="section-divider"><span>Modelo entrenado</span></div>
+            <section class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:8px;">
+                    <h2 style="margin:0; border:none; padding:0;">Resultados</h2>
+                    <div class="btn-group">
+                        <a href="{{ url_for('results') }}" class="btn btn-ghost">Ver detalles</a>
+                        <a href="{{ url_for('predict_page') }}" class="btn btn-success">Hacer predicción</a>
+                    </div>
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.accuracy }}</span>
+                        <span class="metric-label">Accuracy</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.precision }}</span>
+                        <span class="metric-label">Precision</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.recall }}</span>
+                        <span class="metric-label">Recall</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-value">{{ model_info.f1_score }}</span>
+                        <span class="metric-label">F1-Score</span>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+</body>
+</html>
