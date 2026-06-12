@@ -46,7 +46,11 @@ X = pd.get_dummies(X, columns=cat_cols, drop_first=True)
 
 feature_names = X.columns.tolist()
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+stratify_ok = len(y.unique()) >= 2 and all(y.value_counts() >= 2)
+split_kwargs = {'test_size': 0.3, 'random_state': 42}
+if stratify_ok:
+    split_kwargs['stratify'] = y
+X_train, X_test, y_train, y_test = train_test_split(X, y, **split_kwargs)
 
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
