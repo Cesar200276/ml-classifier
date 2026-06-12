@@ -23,9 +23,15 @@ def run_python_script(script_name, args, input_data=None):
     cmd = [sys.executable, script_path] + args
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, text=True)
-    stdout, stderr = proc.communicate(input=input_data, timeout=60)
+    try:
+        stdout, stderr = proc.communicate(input=input_data, timeout=120)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout, stderr = proc.communicate()
+        raise RuntimeError(f"Timeout en {script_name}. El proceso tardó más de 120 segundos.")
     if proc.returncode != 0:
-        raise RuntimeError(f"Error en {script_name}: {stderr}")
+        error_msg = stderr.strip() if stderr else "Error desconocido"
+        raise RuntimeError(f"Error en {script_name}: {error_msg}")
     return stdout
 
 
@@ -119,6 +125,9 @@ def train():
             json.dump(results, f, indent=2)
         flash('Modelo entrenado correctamente')
         return redirect(url_for('index', file=csv_path))
+    except json.JSONDecodeError:
+        flash('Error: el script de entrenamiento no devolvió resultados válidos. Verifica que el CSV tenga datos numéricos y una columna target con valores 0 y 1.')
+        return redirect(url_for('index'))
     except Exception as e:
         flash(f'Error al entrenar: {str(e)}')
         return redirect(url_for('index'))
@@ -173,6 +182,11 @@ def api_predict():
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/graphs')
+def graphs():
+    return render_template('graphs.html')
 
 
 @app.route('/results')

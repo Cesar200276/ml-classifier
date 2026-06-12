@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficos - Regresión Lineal vs Logística</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .graph-section { margin-bottom: 30px; }
+        .graph-section h2 { color: #fff; font-size: 1.3em; margin-bottom: 8px; }
+        .graph-section p { color: #888; font-size: 0.9em; margin-bottom: 16px; }
+        .graph-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 20px;
+            text-align: center;
+        }
+        canvas { max-width: 100%; border-radius: 10px; }
+        .equation-box {
+            background: rgba(108,99,255,0.06);
+            border: 1px solid rgba(108,99,255,0.15);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1em;
+            color: #ccc;
+            text-align: center;
+        }
+        .equation-box .highlight {
+            color: #6c63ff;
+            font-weight: bold;
+        }
+        .equation-box .highlight2 {
+            color: #e94560;
+            font-weight: bold;
+        }
+        .legend-row {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color {
+            width: 20px; height: 3px; border-radius: 2px;
+        }
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 4px;
+            flex-wrap: wrap;
+        }
+        .nav-tabs a {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #888;
+            font-weight: 500;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+        .nav-tabs a:hover { color: #fff; background: rgba(108,99,255,0.1); }
+        .nav-tabs a.active {
+            color: #fff;
+            background: linear-gradient(135deg, #6c63ff, #5a52e0);
+        }
+        .info-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .info-card h3 { color: #6c63ff; margin-bottom: 10px; font-size: 1em; }
+        .info-card ul { list-style: none; padding: 0; }
+        .info-card li {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.9em;
+            color: #bbb;
+        }
+        .info-card li:last-child { border-bottom: none; }
+        .info-card li strong { color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Regresión Lineal vs Logística</h1>
+            <p>Visualización interactiva de los algoritmos</p>
+            <a href="{{ url_for('index') }}" class="back-link">&larr; Volver al inicio</a>
+        </header>
+
+        <div class="nav-tabs">
+            <a href="#lineal" class="active" onclick="showTab('lineal', this)">Regresión Lineal</a>
+            <a href="#logistica" onclick="showTab('logistica', this)">Regresión Logística</a>
+            <a href="#comparacion" onclick="showTab('comparacion', this)">Comparación</a>
+            <a href="#sigmoid" onclick="showTab('sigmoid', this)">Función Sigmoide</a>
+        </div>
+
+        <div id="tab-lineal" class="tab-content">
+            <section class="card">
+                <h2>Regresión Lineal</h2>
+                <p style="color:#888;margin-bottom:16px;">
+                    Modela la relación entre una variable dependiente Y y una independiente X
+                    ajustando una línea recta.
+                </p>
+
+                <div class="equation-box">
+                    y = <span class="highlight">m</span>x + <span class="highlight2">b</span>
+                    &nbsp;&nbsp;→&nbsp;&nbsp;
+                    y = <span class="highlight" id="lineal-m">2.5</span>x + <span class="highlight2" id="lineal-b">5.0</span>
+                </div>
+
+                <div class="graph-container">
+                    <canvas id="canvas-lineal" width="700" height="400"></canvas>
+                    <div class="legend-row">
+                        <span class="legend-item">
+                            <span class="legend-dot" style="background:#6c63ff;"></span>
+                            Datos reales
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#e94560;"></span>
+                            Línea de regresión (predicción)
+                        </span>
+                    </div>
+                </div>
+
+                <div class="info-card" style="margin-top:16px;">
+                    <h3>¿Cómo funciona?</h3>
+                    <ul>
+                        <li>Encuentra la <strong>línea recta</strong> que mejor se ajusta a los datos</li>
+                        <li>Minimiza la <strong>suma de errores al cuadrado</strong> (Mínimos Cuadrados Ordinarios)</li>
+                        <li>Sirve para predecir <strong>valores numéricos continuos</strong> (precios, temperaturas, etc.)</li>
+                        <li><strong>Problema:</strong> Si la aplicamos a clasificación, da probabilidades fuera de [0,1]</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-logistica" class="tab-content" style="display:none;">
+            <section class="card">
+                <h2>Regresión Logística</h2>
+                <p style="color:#888;margin-bottom:16px;">
+                    A pesar del nombre, es un <strong>clasificador binario</strong>. Usa la función
+                    sigmoide para convertir cualquier valor en una probabilidad entre 0 y 1.
+                </p>
+
+                <div class="equation-box">
+                    p(y=1|x) = <span class="highlight">1</span> / (1 + e<sup>-(<span class="highlight2">z</span>)</sup>)
+                    &nbsp;&nbsp;donde&nbsp;&nbsp;
+                    z = <span class="highlight">w</span>·x + <span class="highlight2">b</span>
+                </div>
+
+                <div class="graph-container">
+                    <canvas id="canvas-logistica" width="700" height="400"></canvas>
+                    <div class="legend-row">
+                        <span class="legend-item">
+                            <span class="legend-dot" style="background:#e94560;"></span>
+                            Clase 0 (Negativo)
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot" style="background:#10b981;"></span>
+                            Clase 1 (Positivo)
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#6c63ff;"></span>
+                            Curva Sigmoide
+                        </span>
+                    </div>
+                </div>
+
+                <div class="info-card" style="margin-top:16px;">
+                    <h3>¿Cómo funciona?</h3>
+                    <ul>
+                        <li>Calcula una <strong>combinación lineal</strong> de las features: z = w·x + b</li>
+                        <li>Aplica la <strong>función sigmoide</strong> σ(z) para convertir z en probabilidad</li>
+                        <li>Si <strong>p > 0.5</strong> → Clase 1, si <strong>p ≤ 0.5</strong> → Clase 0</li>
+                        <li>Los pesos w se ajustan con <strong>gradiente descendente</strong> para minimizar el error</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-comparacion" class="tab-content" style="display:none;">
+            <section class="card">
+                <h2>¿Por qué Logística y no Lineal para clasificación?</h2>
+                <p style="color:#888;margin-bottom:16px;">
+                    La regresión lineal no funciona para clasificación porque sus predicciones
+                    no están acotadas entre 0 y 1, y un outlier puede distorsionar todo el modelo.
+                </p>
+
+                <div class="graph-container">
+                    <canvas id="canvas-comparacion" width="700" height="400"></canvas>
+                    <div class="legend-row">
+                        <span class="legend-item">
+                            <span class="legend-dot" style="background:#e94560;"></span>
+                            Clase 0
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-dot" style="background:#10b981;"></span>
+                            Clase 1
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#fbbf24;border:1px dashed #fbbf24;"></span>
+                            Línea de regresión lineal
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#6c63ff;"></span>
+                            Curva logística
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid-2col" style="margin-top:16px;">
+                    <div class="info-card">
+                        <h3 style="color:#e94560;">❌ Con Lineal</h3>
+                        <ul>
+                            <li>Predice valores <strong>menores a 0 o mayores a 1</strong></li>
+                            <li>Un outlier desplaza toda la línea</li>
+                            <li>No puede modelar <strong>relaciones no lineales</strong></li>
+                            <li>Los errores no se distribuyen normalmente</li>
+                        </ul>
+                    </div>
+                    <div class="info-card">
+                        <h3 style="color:#10b981;">✅ Con Logística</h3>
+                        <ul>
+                            <li>La probabilidad <strong>siempre entre 0 y 1</strong></li>
+                            <li><strong>Robusta</strong> a outliers</li>
+                            <li>La sigmoide captura <strong>relaciones no lineales</strong></li>
+                            <li>Diseñada específicamente para <strong>clasificación binaria</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-sigmoid" class="tab-content" style="display:none;">
+            <section class="card">
+                <h2>La Función Sigmoide en detalle</h2>
+                <p style="color:#888;margin-bottom:16px;">
+                    La función sigmoide σ(z) = 1/(1+e⁻ᶻ) convierte cualquier número real
+                    en una probabilidad entre 0 y 1.
+                </p>
+
+                <div class="equation-box">
+                    σ(z) = <span class="highlight">1</span> / (1 + e<sup>-<span class="highlight2">z</span></sup>)
+                    &nbsp;&nbsp;&nbsp;
+                    z → -∞ &nbsp;⇒&nbsp; σ(z) → <span style="color:#e94560;">0</span>
+                    &nbsp;&nbsp;&nbsp;
+                    z → +∞ &nbsp;⇒&nbsp; σ(z) → <span style="color:#10b981;">1</span>
+                    &nbsp;&nbsp;&nbsp;
+                    z = 0 &nbsp;⇒&nbsp; σ(z) = <span style="color:#6c63ff;">0.5</span>
+                </div>
+
+                <div class="graph-container">
+                    <canvas id="canvas-sigmoid" width="700" height="400"></canvas>
+                    <div class="legend-row">
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#6c63ff;"></span>
+                            σ(z) = 1/(1+e⁻ᶻ)
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color" style="background:#e94560;border-style:dashed;"></span>
+                            Frontera: z = 0, p = 0.5
+                        </span>
+                    </div>
+                </div>
+
+                <div class="info-card" style="margin-top:16px;">
+                    <h3>Propiedades importantes</h3>
+                    <ul>
+                        <li><strong>Rango:</strong> Siempre devuelve valores entre <strong>0</strong> y <strong>1</strong></li>
+                        <li><strong>Simetría:</strong> σ(-z) = 1 - σ(z) — simétrica respecto a (0, 0.5)</li>
+                        <li><strong>Derivada:</strong> σ'(z) = σ(z) · (1 - σ(z)) — fácil de calcular para gradiente descendente</li>
+                        <li><strong>Lineal cerca de 0:</strong> Aproximadamente lineal entre z = -2 y z = +2</li>
+                        <li><strong>Saturación:</strong> Para |z| > 5, la curva se aplana (gradiente cercano a 0)</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        function showTab(name, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.nav-tabs a').forEach(a => a.classList.remove('active'));
+            document.getElementById('tab-' + name).style.display = 'block';
+            (el || event.target).classList.add('active');
+        }
+
+        // ─── GRÁFICO 1: Regresión Lineal ───
+        (function() {
+            const c = document.getElementById('canvas-lineal');
+            const ctx = c.getContext('2d');
+            const W = c.width, H = c.height;
+            const pad = { top: 30, right: 30, bottom: 40, left: 50 };
+            const gw = W - pad.left - pad.right;
+            const gh = H - pad.top - pad.bottom;
+
+            function toX(v) { return pad.left + (v / 10) * gw; }
+            function toY(v) { return pad.top + gh - (v / 30) * gh; }
+
+            const dataX = [0.5, 1.2, 2.0, 2.8, 3.5, 4.1, 5.0, 5.7, 6.3, 7.1, 7.8, 8.5, 9.2, 9.8, 10.0];
+            const dataY = [5.8, 7.5, 9.2, 13.0, 14.5, 16.0, 17.8, 19.2, 22.0, 23.5, 24.8, 26.0, 28.5, 29.0, 30.5];
+            const n = dataX.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += dataX[i]; sumY += dataY[i];
+                sumXY += dataX[i] * dataY[i]; sumX2 += dataX[i] * dataX[i];
+            }
+            const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            const b = (sumY - m * sumX) / n;
+
+            document.getElementById('lineal-m').textContent = m.toFixed(2);
+            document.getElementById('lineal-b').textContent = b.toFixed(2);
+
+            function drawLineal() {
+                ctx.clearRect(0, 0, W, H);
+
+                // Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 10; i++) {
+                    const x = toX(i);
+                    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + gh); ctx.stroke();
+                }
+                for (let i = 0; i <= 30; i += 5) {
+                    const y = toY(i);
+                    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gw, y); ctx.stroke();
+                }
+
+                // Línea de regresión
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(toX(0), toY(m * 0 + b));
+                ctx.lineTo(toX(10), toY(m * 10 + b));
+                ctx.stroke();
+
+                // Puntos de datos
+                for (let i = 0; i < n; i++) {
+                    ctx.beginPath();
+                    ctx.arc(toX(dataX[i]), toY(dataY[i]), 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#6c63ff';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Línea de error
+                    const predY = m * dataX[i] + b;
+                    ctx.strokeStyle = 'rgba(233,69,96,0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(toX(dataX[i]), toY(dataY[i]));
+                    ctx.lineTo(toX(dataX[i]), toY(predY));
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Ejes
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + gh); ctx.lineTo(pad.left + gw, pad.top + gh);
+                ctx.stroke();
+
+                // Labels
+                ctx.fillStyle = '#888';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = 0; i <= 10; i += 2) {
+                    ctx.fillText(i, toX(i), pad.top + gh + 20);
+                }
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 30; i += 5) {
+                    ctx.fillText(i, pad.left - 10, toY(i) + 4);
+                }
+                ctx.fillStyle = '#aaa';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Variable X', pad.left + gw / 2, H - 5);
+                ctx.save();
+                ctx.translate(14, pad.top + gh / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Variable Y', 0, 0);
+                ctx.restore();
+            }
+            drawLineal();
+        })();
+
+        // ─── GRÁFICO 2: Regresión Logística ───
+        (function() {
+            const c = document.getElementById('canvas-logistica');
+            const ctx = c.getContext('2d');
+            const W = c.width, H = c.height;
+            const pad = { top: 30, right: 30, bottom: 40, left: 50 };
+            const gw = W - pad.left - pad.right;
+            const gh = H - pad.top - pad.bottom;
+
+            function toX(v) { return pad.left + ((v + 7) / 14) * gw; }
+            function toY(v) { return pad.top + gh - (v / 1.05) * gh; }
+            function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+            // Datos de clasificación
+            const dataX = [];
+            const dataY = [];
+            for (let i = 0; i < 25; i++) {
+                dataX.push(-4 + Math.random() * 3);
+                dataY.push(0);
+            }
+            for (let i = 0; i < 25; i++) {
+                dataX.push(4 - Math.random() * 3);
+                dataY.push(1);
+            }
+
+            function drawLogistica() {
+                ctx.clearRect(0, 0, W, H);
+
+                // Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = -6; i <= 6; i += 2) {
+                    const x = toX(i);
+                    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + gh); ctx.stroke();
+                }
+                for (let i = 0; i <= 1; i += 0.25) {
+                    const y = toY(i);
+                    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gw, y); ctx.stroke();
+                }
+
+                // Curva sigmoide
+                ctx.strokeStyle = '#6c63ff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = -7; x <= 7; x += 0.05) {
+                    const px = toX(x);
+                    const py = toY(sigmoid(x));
+                    if (x === -7) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Línea z=0, p=0.5
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(toX(0), pad.top);
+                ctx.lineTo(toX(0), pad.top + gh);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pad.left, toY(0.5));
+                ctx.lineTo(pad.left + gw, toY(0.5));
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Puntos
+                for (let i = 0; i < dataX.length; i++) {
+                    const jitter = (Math.random() - 0.5) * 0.06;
+                    ctx.beginPath();
+                    ctx.arc(toX(dataX[i]), toY(dataY[i] + jitter), 5, 0, Math.PI * 2);
+                    ctx.fillStyle = dataY[i] === 0 ? '#e94560' : '#10b981';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+
+                // Ejes
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + gh); ctx.lineTo(pad.left + gw, pad.top + gh);
+                ctx.stroke();
+
+                // Labels
+                ctx.fillStyle = '#888';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = -6; i <= 6; i += 2) {
+                    ctx.fillText(i, toX(i), pad.top + gh + 20);
+                }
+                ctx.textAlign = 'right';
+                ctx.fillText('0', pad.left - 10, toY(0) + 4);
+                ctx.fillText('0.5', pad.left - 10, toY(0.5) + 4);
+                ctx.fillText('1', pad.left - 10, toY(1) + 4);
+
+                ctx.fillStyle = '#aaa';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('z = w·x + b', pad.left + gw / 2, H - 5);
+                ctx.save();
+                ctx.translate(14, pad.top + gh / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('p(y=1|x)', 0, 0);
+                ctx.restore();
+
+                // Anotaciones
+                ctx.fillStyle = '#e94560';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Clase 0', toX(-6.5), toY(0.15));
+                ctx.fillStyle = '#10b981';
+                ctx.fillText('Clase 1', toX(4.5), toY(0.85));
+            }
+            drawLogistica();
+        })();
+
+        // ─── GRÁFICO 3: Comparación ───
+        (function() {
+            const c = document.getElementById('canvas-comparacion');
+            const ctx = c.getContext('2d');
+            const W = c.width, H = c.height;
+            const pad = { top: 30, right: 30, bottom: 40, left: 50 };
+            const gw = W - pad.left - pad.right;
+            const gh = H - pad.top - pad.bottom;
+
+            function toX(v) { return pad.left + ((v + 5) / 12) * gw; }
+            function toY(v) { return pad.top + gh - (v / 1.3) * gh; }
+            function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+            const clsX = [];
+            const clsY = [];
+            for (let i = 0; i < 20; i++) {
+                clsX.push(-3 + Math.random() * 2.5);
+                clsY.push(0);
+            }
+            for (let i = 0; i < 20; i++) {
+                clsX.push(3 - Math.random() * 2.5);
+                clsY.push(1);
+            }
+            // outlier
+            clsX.push(6);
+            clsY.push(1);
+
+            function drawComparacion() {
+                ctx.clearRect(0, 0, W, H);
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = -4; i <= 6; i += 2) {
+                    const x = toX(i);
+                    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + gh); ctx.stroke();
+                }
+                for (let i = 0; i <= 1; i += 0.25) {
+                    const y = toY(i);
+                    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gw, y); ctx.stroke();
+                }
+
+                // Línea de regresión lineal afectada por outlier
+                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                for (let i = 0; i < clsX.length; i++) {
+                    sumX += clsX[i]; sumY += clsY[i];
+                    sumXY += clsX[i] * clsY[i]; sumX2 += clsX[i] * clsX[i];
+                }
+                const n = clsX.length;
+                const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                const b = (sumY - m * sumX) / n;
+
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(toX(-4), toY(m * (-4) + b));
+                ctx.lineTo(toX(6), toY(m * 6 + b));
+                ctx.stroke();
+
+                // Curva logística
+                ctx.strokeStyle = '#6c63ff';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                for (let x = -5; x <= 7; x += 0.05) {
+                    const z = x * 1.2;
+                    const px = toX(x);
+                    const py = toY(sigmoid(z));
+                    if (x === -5) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Línea p=0.5
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(pad.left, toY(0.5)); ctx.lineTo(pad.left + gw, toY(0.5));
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Puntos
+                for (let i = 0; i < clsX.length; i++) {
+                    const jitter = (Math.random() - 0.5) * 0.05;
+                    ctx.beginPath();
+                    ctx.arc(toX(clsX[i]), toY(clsY[i] + jitter), 5, 0, Math.PI * 2);
+                    ctx.fillStyle = clsY[i] === 0 ? '#e94560' : '#10b981';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+
+                // Destacar el outlier
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(toX(6), toY(1), 10, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = '#e94560';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Outlier', toX(6) + 12, toY(1) + 4);
+
+                // Anotación de problema lineal
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = '10px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('La línea se desplaza', toX(1), toY(-0.15));
+                ctx.fillText('por el outlier', toX(1), toY(-0.3));
+
+                // Ejes
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + gh); ctx.lineTo(pad.left + gw, pad.top + gh);
+                ctx.stroke();
+
+                ctx.fillStyle = '#888';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = -4; i <= 6; i += 2) {
+                    ctx.fillText(i, toX(i), pad.top + gh + 20);
+                }
+                ctx.textAlign = 'right';
+                ctx.fillText('0', pad.left - 10, toY(0) + 4);
+                ctx.fillText('0.5', pad.left - 10, toY(0.5) + 4);
+                ctx.fillText('1', pad.left - 10, toY(1) + 4);
+
+                ctx.fillStyle = '#aaa';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('X', pad.left + gw / 2, H - 5);
+                ctx.save();
+                ctx.translate(14, pad.top + gh / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Clase / Probabilidad', 0, 0);
+                ctx.restore();
+            }
+            drawComparacion();
+        })();
+
+        // ─── GRÁFICO 4: Sigmoide en detalle ───
+        (function() {
+            const c = document.getElementById('canvas-sigmoid');
+            const ctx = c.getContext('2d');
+            const W = c.width, H = c.height;
+            const pad = { top: 30, right: 30, bottom: 40, left: 60 };
+            const gw = W - pad.left - pad.right;
+            const gh = H - pad.top - pad.bottom;
+
+            function toX(v) { return pad.left + ((v + 8) / 16) * gw; }
+            function toY(v) { return pad.top + gh - (v / 1.08) * gh; }
+            function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+            function drawSigmoid() {
+                ctx.clearRect(0, 0, W, H);
+
+                // Grid
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.lineWidth = 1;
+                for (let i = -8; i <= 8; i += 2) {
+                    const x = toX(i);
+                    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + gh); ctx.stroke();
+                }
+                for (let i = 0; i <= 1; i += 0.1) {
+                    const y = toY(i);
+                    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + gw, y); ctx.stroke();
+                }
+
+                // Relleno Clase 0 (z < 0)
+                ctx.fillStyle = 'rgba(233,69,96,0.06)';
+                ctx.beginPath();
+                ctx.moveTo(toX(-8), toY(0));
+                for (let x = -8; x <= 0; x += 0.05) {
+                    ctx.lineTo(toX(x), toY(sigmoid(x)));
+                }
+                ctx.lineTo(toX(0), toY(0));
+                ctx.closePath();
+                ctx.fill();
+
+                // Relleno Clase 1 (z > 0)
+                ctx.fillStyle = 'rgba(16,185,129,0.06)';
+                ctx.beginPath();
+                ctx.moveTo(toX(0), toY(0));
+                for (let x = 0; x <= 8; x += 0.05) {
+                    ctx.lineTo(toX(x), toY(sigmoid(x)));
+                }
+                ctx.lineTo(toX(8), toY(0));
+                ctx.closePath();
+                ctx.fill();
+
+                // Curva sigmoide
+                ctx.strokeStyle = '#6c63ff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                for (let x = -8; x <= 8; x += 0.03) {
+                    const px = toX(x);
+                    const py = toY(sigmoid(x));
+                    if (x === -8) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Asíntotas
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(pad.left, toY(1)); ctx.lineTo(pad.left + gw, toY(1));
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pad.left, toY(0)); ctx.lineTo(pad.left + gw, toY(0));
+                ctx.stroke();
+
+                // Línea z=0, p=0.5
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(toX(0), pad.top); ctx.lineTo(toX(0), pad.top + gh);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(pad.left, toY(0.5)); ctx.lineTo(pad.left + gw, toY(0.5));
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Punto de inflexión
+                ctx.beginPath();
+                ctx.arc(toX(0), toY(0.5), 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#e94560';
+                ctx.fill();
+
+                // Anotaciones
+                ctx.fillStyle = '#e94560';
+                ctx.font = 'bold 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('z = 0 → p = 0.5', toX(0), pad.top - 8);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.font = '10px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Asíntota: p = 1', toX(5), toY(1) - 8);
+                ctx.fillText('Asíntota: p = 0', toX(5), toY(0) - 8);
+
+                ctx.fillStyle = '#e94560';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Clase 0', toX(-4), toY(0.15));
+                ctx.fillStyle = '#10b981';
+                ctx.fillText('Clase 1', toX(4), toY(0.85));
+
+                // Ejes
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + gh); ctx.lineTo(pad.left + gw, pad.top + gh);
+                ctx.stroke();
+
+                // Labels
+                ctx.fillStyle = '#888';
+                ctx.font = '11px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = -8; i <= 8; i += 2) {
+                    ctx.fillText(i, toX(i), pad.top + gh + 20);
+                }
+                ctx.textAlign = 'right';
+                ctx.font = '10px Inter, sans-serif';
+                for (let i = 0; i <= 1; i += 0.1) {
+                    if (i === 0 || i === 0.5 || i === 1) {
+                        ctx.fillText(i.toFixed(1), pad.left - 10, toY(i) + 4);
+                    }
+                }
+
+                ctx.fillStyle = '#aaa';
+                ctx.font = '12px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('z = w·x + b', pad.left + gw / 2, H - 5);
+                ctx.save();
+                ctx.translate(12, pad.top + gh / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('σ(z) = 1/(1+e⁻ᶻ)', 0, 0);
+                ctx.restore();
+            }
+            drawSigmoid();
+        })();
+    </script>
+</body>
+</html>

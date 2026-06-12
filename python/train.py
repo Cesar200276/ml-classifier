@@ -15,15 +15,33 @@ target_col = sys.argv[3] if len(sys.argv) > 3 else None
 
 os.makedirs(model_dir, exist_ok=True)
 
-df = pd.read_csv(csv_path)
+try:
+    df = pd.read_csv(csv_path)
+except Exception as e:
+    print(json.dumps({"error": f"No se pudo leer el CSV: {str(e)}"}))
+    sys.exit(1)
 
 if target_col is None:
     target_col = df.columns[-1]
 
+if df[target_col].nunique() < 2:
+    print(json.dumps({"error": f"La columna '{target_col}' debe tener al menos 2 valores distintos (0 y 1). Valores encontrados: {df[target_col].unique().tolist()}"}))
+    sys.exit(1)
+
+if target_col not in df.columns:
+    print(json.dumps({"error": f"La columna '{target_col}' no existe en el CSV. Columnas disponibles: {df.columns.tolist()}"}))
+    sys.exit(1)
+
 y = df[target_col]
 X = df.drop(columns=[target_col])
 
-cat_cols = X.select_dtypes(include=['object']).columns
+for col in X.columns:
+    if X[col].dtype == 'object':
+        X[col] = pd.to_numeric(X[col], errors='coerce')
+    if X[col].isna().any():
+        X[col] = X[col].fillna(X[col].median())
+
+cat_cols = X.select_dtypes(include=['object', 'category']).columns
 X = pd.get_dummies(X, columns=cat_cols, drop_first=True)
 
 feature_names = X.columns.tolist()
@@ -57,5 +75,17 @@ results = {
 
 joblib.dump({'model': model, 'scaler': scaler, 'feature_names': feature_names, 'target_col': target_col},
             os.path.join(model_dir, 'model.pkl'))
+
+model_json = {
+    'coefficients': model.coef_[0].tolist(),
+    'intercept': float(model.intercept_[0]),
+    'scaler_mean': scaler.mean_.tolist(),
+    'scaler_scale': scaler.scale_.tolist(),
+    'feature_names': feature_names,
+    'classes': results['classes'],
+    'target_col': target_col
+}
+with open(os.path.join(model_dir, 'model.json'), 'w') as f:
+    json.dump(model_json, f, indent=2)
 
 print(json.dumps(results))

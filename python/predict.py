@@ -1,39 +1,53 @@
 import sys
 import json
-import pandas as pd
-import joblib
 import os
+import math
+
+
+def sigmoid(z):
+    return 1.0 / (1.0 + math.exp(-z))
+
 
 model_path = sys.argv[1]
+model_dir = os.path.dirname(model_path)
+model_json_path = os.path.join(model_dir, 'model.json')
+
+with open(model_json_path, 'r') as f:
+    model_data = json.load(f)
+
 input_json = sys.stdin.read()
-
 data = json.loads(input_json)
-artifacts = joblib.load(model_path)
-model = artifacts['model']
-scaler = artifacts['scaler']
-feature_names = artifacts['feature_names']
-target_col = artifacts.get('target_col', 'target')
 
-input_df = pd.DataFrame([data])
+feature_names = model_data['feature_names']
+coefficients = model_data['coefficients']
+intercept = model_data['intercept']
+scaler_mean = model_data['scaler_mean']
+scaler_scale = model_data['scaler_scale']
 
-cat_cols = input_df.select_dtypes(include=['object']).columns
-input_df = pd.get_dummies(input_df, columns=cat_cols, drop_first=True)
-
+vals = []
 for col in feature_names:
-    if col not in input_df.columns:
-        input_df[col] = 0
+    v = data.get(col, 0)
+    try:
+        vals.append(float(v))
+    except (ValueError, TypeError):
+        vals.append(0.0)
 
-input_df = input_df[feature_names]
+x_scaled = [(vals[i] - scaler_mean[i]) / scaler_scale[i] for i in range(len(vals))]
 
-input_scaled = scaler.transform(input_df)
+z = intercept
+for i in range(len(x_scaled)):
+    z += coefficients[i] * x_scaled[i]
 
-prediction = int(model.predict(input_scaled)[0])
-probabilities = model.predict_proba(input_scaled)[0].tolist()
+prob_class1 = sigmoid(z)
+prob_class0 = 1.0 - prob_class1
+
+classes = model_data['classes']
+prediction = classes[1] if prob_class1 > 0.5 else classes[0]
 
 result = {
     'prediction': prediction,
-    'probabilities': probabilities,
-    'classes': model.classes_.tolist()
+    'probabilities': [prob_class0, prob_class1],
+    'classes': classes
 }
 
 print(json.dumps(result))
